@@ -1,0 +1,29 @@
+server:
+  port: 9001
+
+spring:
+  application:
+    name: iam-service
+
+keycloak:
+  server-url: http://localhost:8080
+  realm: huangjie
+  admin-client-id: hj-admin-service
+  admin-client-secret: Irwfx1xK1u8Vi1SfWGb7h0FFEXGE7gkl
+  login-client-id: hj-admin-service
+  login-client-secret: Irwfx1xK1u8Vi1SfWGb7h0FFEXGE7gkl
+  connect-timeout-seconds: 5
+  read-timeout-seconds: 10
+
+jwt:
+  access-secret: local-dev-access-secret-123456-local-dev-access-secret
+  refresh-secret: local-dev-refresh-secret-123456-local-dev-refresh-secret
+  access-token-expire-minutes: 30
+  refresh-token-expire-days: 7
+
+auth:
+  cookie:
+    access-token-name: access_token
+    refresh-token-name: refresh_token
+    secure: false
+    same-site: Lax
