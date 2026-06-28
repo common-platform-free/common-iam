@@ -19,25 +19,16 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     /**
-     * 放行当前 IAM 第一版接口。
+     * 放行 IAM 服务全部请求。
      * 生产环境必须通过网络隔离保证 IAM 只能被 Gateway 访问，不能公网直连。
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // 第一版 IAM 不作为 Resource Server 校验业务 access_token。
-        // /iam/admin/** 由 Gateway 鉴权后转发，生产环境必须确保 IAM 只能被 Gateway 访问。
+        // 认证鉴权由 Gateway 负责，IAM 服务本地全部放行。
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                "/iam/auth/login",
-                                "/iam/auth/refresh",
-                                "/iam/auth/logout",
-                                "/iam/auth/me",
-                                "/iam/internal/jwt/secret",
-                                "/actuator/health",
-                                "/iam/admin/**"
-                        ).permitAll()
                         .anyRequest().permitAll()
                 )
                 .build();

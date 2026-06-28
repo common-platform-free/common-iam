@@ -1,5 +1,6 @@
 package com.huangjie.commoniam.service;
 
+import com.huangjie.commoniam.client.KeycloakUserClient;
 import com.huangjie.commoniam.common.ErrorCode;
 import com.huangjie.commoniam.config.KeycloakProperties;
 import com.huangjie.commoniam.dto.CreateUserRequest;
@@ -15,14 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Keycloak 用户 Admin API 封装。
@@ -34,14 +29,9 @@ import org.springframework.web.client.RestClientResponseException;
 @RequiredArgsConstructor
 public class KeycloakUserService {
 
-    private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAP =
-            new ParameterizedTypeReference<>() {
-            };
-
-    private final RestClient keycloakRestClient;
+    private final KeycloakUserClient keycloakUserClient;
     private final KeycloakProperties keycloakProperties;
     private final KeycloakAdminTokenService adminTokenService;
-    private final KeycloakErrorMapper keycloakErrorMapper;
 
     /**
      * 创建 Keycloak 用户，并设置初始密码。
@@ -61,19 +51,9 @@ public class KeycloakUserService {
                 "temporary", false
         )));
 
-        try {
-            ResponseEntity<Void> response = keycloakRestClient.post()
-                    .uri("/admin/realms/{realm}/users", keycloakProperties.getRealm())
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-            String userId = parseUserIdFromLocation(response.getHeaders().getLocation());
-            return userId == null ? findUserIdByUsername(request.username()) : userId;
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        ResponseEntity<Void> response = keycloakUserClient.createUser(bearerAuth(), keycloakProperties.getRealm(), body);
+        String userId = parseUserIdFromLocation(response.getHeaders().getLocation());
+        return userId == null ? findUserIdByUsername(request.username()) : userId;
     }
 
     /**
@@ -84,21 +64,14 @@ public class KeycloakUserService {
         int safePage = Math.max(page, 1);
         int safeSize = Math.max(size, 1);
         int first = (safePage - 1) * safeSize;
-        try {
-            List<Map<String, Object>> users = keycloakRestClient.get()
-                    .uri(builder -> builder
-                            .path("/admin/realms/{realm}/users")
-                            .queryParamIfPresent("username", java.util.Optional.ofNullable(username))
-                            .queryParam("first", first)
-                            .queryParam("max", safeSize)
-                            .build(keycloakProperties.getRealm()))
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(LIST_OF_MAP);
-            return users == null ? List.of() : users.stream().map(this::toUserVO).toList();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        List<Map<String, Object>> users = keycloakUserClient.listUsers(
+                bearerAuth(),
+                keycloakProperties.getRealm(),
+                username,
+                first,
+                safeSize
+        );
+        return users == null ? List.of() : users.stream().map(this::toUserVO).toList();
     }
 
     /**
@@ -146,32 +119,14 @@ public class KeycloakUserService {
                 "value", request.password(),
                 "temporary", request.temporary() != null && request.temporary()
         );
-        try {
-            keycloakRestClient.put()
-                    .uri("/admin/realms/{realm}/users/{userId}/reset-password", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakUserClient.resetPassword(bearerAuth(), keycloakProperties.getRealm(), userId, body);
     }
 
     /**
      * 删除 Keycloak 用户。
      */
     public void deleteUser(String userId) {
-        try {
-            keycloakRestClient.delete()
-                    .uri("/admin/realms/{realm}/users/{userId}", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakUserClient.deleteUser(bearerAuth(), keycloakProperties.getRealm(), userId);
     }
 
     /**
@@ -179,25 +134,18 @@ public class KeycloakUserService {
      * 登录成功后会用它把 username 转成 Keycloak userId。
      */
     public UserVO findSingleUserByUsername(String username) {
-        try {
-            List<Map<String, Object>> users = keycloakRestClient.get()
-                    .uri(builder -> builder
-                            .path("/admin/realms/{realm}/users")
-                            .queryParam("username", username)
-                            .queryParam("exact", true)
-                            .queryParam("first", 0)
-                            .queryParam("max", 2)
-                            .build(keycloakProperties.getRealm()))
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(LIST_OF_MAP);
-            if (users == null || users.isEmpty()) {
-                throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
-            }
-            return toUserVO(users.get(0));
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
+        List<Map<String, Object>> users = keycloakUserClient.findUsersByUsername(
+                bearerAuth(),
+                keycloakProperties.getRealm(),
+                username,
+                true,
+                0,
+                2
+        );
+        if (users == null || users.isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
         }
+        return toUserVO(users.get(0));
     }
 
     /**
@@ -225,16 +173,12 @@ public class KeycloakUserService {
      * 查询用户当前拥有的 Realm Role。
      */
     public List<RoleVO> getUserRealmRoles(String userId) {
-        try {
-            List<Map<String, Object>> roles = keycloakRestClient.get()
-                    .uri("/admin/realms/{realm}/users/{userId}/role-mappings/realm", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(LIST_OF_MAP);
-            return roles == null ? List.of() : roles.stream().map(this::toRoleVO).toList();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        List<Map<String, Object>> roles = keycloakUserClient.getUserRealmRoles(
+                bearerAuth(),
+                keycloakProperties.getRealm(),
+                userId
+        );
+        return roles == null ? List.of() : roles.stream().map(this::toRoleVO).toList();
     }
 
     /**
@@ -242,17 +186,7 @@ public class KeycloakUserService {
      * Keycloak 要求传入完整 role representation，不只是 roleName。
      */
     public void assignRealmRoles(String userId, List<Map<String, Object>> roleRepresentations) {
-        try {
-            keycloakRestClient.post()
-                    .uri("/admin/realms/{realm}/users/{userId}/role-mappings/realm", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(roleRepresentations)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakUserClient.assignRealmRoles(bearerAuth(), keycloakProperties.getRealm(), userId, roleRepresentations);
     }
 
     /**
@@ -260,49 +194,21 @@ public class KeycloakUserService {
      * DELETE 请求体同样需要完整 role representation。
      */
     public void removeRealmRoles(String userId, List<Map<String, Object>> roleRepresentations) {
-        try {
-            keycloakRestClient.method(HttpMethod.DELETE)
-                    .uri("/admin/realms/{realm}/users/{userId}/role-mappings/realm", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(roleRepresentations)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakUserClient.removeRealmRoles(bearerAuth(), keycloakProperties.getRealm(), userId, roleRepresentations);
     }
 
     /**
      * 获取 Keycloak 原始用户 representation，供内部转换为 UserVO。
      */
     private Map<String, Object> getUserRepresentation(String userId) {
-        try {
-            return keycloakRestClient.get()
-                    .uri("/admin/realms/{realm}/users/{userId}", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(Map.class);
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        return keycloakUserClient.getUser(bearerAuth(), keycloakProperties.getRealm(), userId);
     }
 
     /**
      * 调用 Keycloak 用户更新接口。
      */
     private void updateUserRepresentation(String userId, Map<String, Object> body) {
-        try {
-            keycloakRestClient.put()
-                    .uri("/admin/realms/{realm}/users/{userId}", keycloakProperties.getRealm(), userId)
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakUserClient.updateUser(bearerAuth(), keycloakProperties.getRealm(), userId, body);
     }
 
     private String findUserIdByUsername(String username) {
@@ -312,8 +218,8 @@ public class KeycloakUserService {
     /**
      * Admin API 统一加上 bearer token。
      */
-    private void bearerAuth(HttpHeaders headers) {
-        headers.setBearerAuth(adminTokenService.getAdminToken());
+    private String bearerAuth() {
+        return "Bearer " + adminTokenService.getAdminToken();
     }
 
     private void putIfNotNull(Map<String, Object> body, String key, Object value) {

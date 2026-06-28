@@ -1,6 +1,7 @@
 package com.huangjie.commoniam.service;
 
 import com.huangjie.commoniam.common.ErrorCode;
+import com.huangjie.commoniam.config.JwtConfig;
 import com.huangjie.commoniam.config.JwtProperties;
 import com.huangjie.commoniam.exception.BusinessException;
 import java.time.Instant;
@@ -8,6 +9,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -20,8 +22,8 @@ import org.springframework.stereotype.Service;
 /**
  * 业务 JWT 签发与 refresh_token 校验服务。
  *
- * <p>access_token 与 refresh_token 使用不同密钥：
- * access_token 给 Gateway 验签，refresh_token 只在 IAM 内部校验。</p>
+ * <p>access_token 使用 RS256 私钥签发，公钥给 Gateway 验签；
+ * refresh_token 使用 IAM 内部 HS256 secret 签发和校验。</p>
  */
 @Service
 public class TokenIssueService {
@@ -61,7 +63,7 @@ public class TokenIssueService {
                 .claim(CLAIM_USERNAME, username)
                 .claim(CLAIM_ROLES, roles)
                 .build();
-        return encode(accessTokenJwtEncoder, claims);
+        return encodeAccessToken(claims);
     }
 
     /**
@@ -77,7 +79,7 @@ public class TokenIssueService {
                 .claim(CLAIM_TYP, "refresh")
                 .claim(CLAIM_USERNAME, username)
                 .build();
-        return encode(refreshTokenJwtEncoder, claims);
+        return encodeRefreshToken(claims);
     }
 
     /**
@@ -111,10 +113,20 @@ public class TokenIssueService {
     }
 
     /**
-     * 使用 Spring Security OAuth2 JOSE 组件完成 HS256 签名，不手写 JWT 拼接逻辑。
+     * 使用 Spring Security OAuth2 JOSE 组件完成 RS256 签名，不手写 JWT 拼接逻辑。
      */
-    private String encode(JwtEncoder jwtEncoder, JwtClaimsSet claims) {
+    private String encodeAccessToken(JwtClaimsSet claims) {
+        JwsHeader header = JwsHeader.with(SignatureAlgorithm.RS256)
+                .keyId(JwtConfig.ACCESS_TOKEN_KEY_ID)
+                .build();
+        return accessTokenJwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    }
+
+    /**
+     * 使用 Spring Security OAuth2 JOSE 组件完成 refresh_token 的 HS256 签名。
+     */
+    private String encodeRefreshToken(JwtClaimsSet claims) {
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+        return refreshTokenJwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 }

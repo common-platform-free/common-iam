@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: iam-service
+    name: common-iam
 
 keycloak:
   server-url: http://localhost:8080
@@ -16,8 +16,46 @@ keycloak:
   read-timeout-seconds: 10
 
 jwt:
-  access-secret: local-dev-access-secret-123456-local-dev-access-secret
-  refresh-secret: local-dev-refresh-secret-123456-local-dev-refresh-secret
+  access-private-key: |
+    -----BEGIN PRIVATE KEY-----
+    MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCRp9qMfubZtIGG
+    dNFN72WPOX2LYG6kuV8qauBgYEU2JQjGc1/mvn9kvVe4GGiMNlfHJ1h/vVhEhP89
+    ViDdTDldCS9nF23DlAXjVy6Q9queDqM0WKHgwJSNBWVHlxMTL2E6Oubhd16oIyno
+    juqjjl/3HT85LCRf0e1RTgO7l2yWaPp+N+/39tD17+mRs43eAnHvHgHURLhqNaie
+    YVoRQpHLT2TZkQl3ucoJTOsBa06T7ehpaGfoBJcGOOUVLgCQhtYcYmjKgx09Ipwc
+    Objjy3PJ4OPGiM7Xen/Xau5JnMdl93w1NsYI/4wvq7FSZJbhOB+Is5FBl+RsdNff
+    Qa3YDpqXAgMBAAECggEAGjQGPyw9P4EXpCaz2L9ul9uR2Fca0IuAsVLU1sG68cir
+    0XfEEvDGXksp0rahaEgGdo9/fkuD65+5g0FRXD5wO2qBmpw+ZObmQEXY3L9jlGWx
+    uqMPTC2ZC92ioMRu7A6kASPDkWA2KS1aRrofQBlG7l/WleR5DrvnY68TQNY29L/c
+    efUeGbKScn+PsM622BVEQZL6+HhsbZdYg0dHe90yg1i6X834paFD41XlDgvJKLza
+    yYuJO4MX0Rp0hrsABixNxc2k6Ic7e0wyMYks+8hjgIUwDKUs50tnmh0oBBckF/Uf
+    uBjYosajLXLptgtukccbWtc5/EbMsPI1T2JQ6db04QKBgQDIYX1sfXTw05FFCro0
+    OGBQJE0BOLJVE3UzcrAlVjj431go37Cvenzop+tG1Dk+5tY6Uz7zV/ozFXG+gFq+
+    eLMFqMWaUKV4Gf6jd8TKNGjs/RQQkHUWagbheI/dqxypC2FkXgoX0fF5Sr06hcF3
+    WEBWxaqNSIFdfvPuuK1MaT+0zwKBgQC6Fb7l/vGnDGVIaU4KKLFH0NNsJNtIJ0qY
+    doVUGm5WxWtc+ABj/GokM3DVCGUa007BW/wk+3iUDZBatgNyArcGCaoJRZ7Zlcs3
+    4J3JGanZP1g2UH9MSPdxQr4CenmDg5kYudlqby2PIs//Ln76mJvIMs2AyrwXgCLB
+    mQ9x+Zo/uQKBgGXVdcJe98E0JA2sZ/kF9ZyE9kV6pNarrtJYpMA003tXNhx/ofFs
+    FHLAc8dpLzaSZaj6iXFt8o9nhIjF/lfySzjDDrlf5tfkjg5RXcdNX02hSEMqxvZ/
+    J8QKW0LSJRyb1gEF8actYMS9gPFu7GVUik4O4qAuiuATFrDpVdkRW/jtAoGAE9gv
+    1H08rhDfWDqKrQCr7zmw4k6H6AjwppO1IkPzUmOZUH/OItuPQi8OMFnF1neEZZB2
+    skbzE+7iXxocAfOSKx2quXRoPVIBKwNUMFcBSv67XId3G96ILNbuRntjLAhDsmRX
+    cEdM93/B6Le/qN/PdSkdy0dTiboLetPk1sXEklkCgYA6sGPserEA4Iw797JcHojr
+    6moZyLr5TKLEimW3Fgg7ObzZXV8rQ7Vojce4xc7koDtEF2IU3+P7QCq/SmRsQsG3
+    Vt0OfyKQoE4IIgCoc0YX609LwB0Hcx9BQzuFPlmwWRKgBI8RgyLqN+E1NITA00Um
+    XjkfL5nFqCdnx6tU57Ol1w==
+    -----END PRIVATE KEY-----
+  access-public-key: |
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkafajH7m2bSBhnTRTe9l
+    jzl9i2BupLlfKmrgYGBFNiUIxnNf5r5/ZL1XuBhojDZXxydYf71YRIT/PVYg3Uw5
+    XQkvZxdtw5QF41cukParng6jNFih4MCUjQVlR5cTEy9hOjrm4XdeqCMp6I7qo45f
+    9x0/OSwkX9HtUU4Du5dslmj6fjfv9/bQ9e/pkbON3gJx7x4B1ES4ajWonmFaEUKR
+    y09k2ZEJd7nKCUzrAWtOk+3oaWhn6ASXBjjlFS4AkIbWHGJoyoMdPSKcHDm448tz
+    yeDjxojO13p/12ruSZzHZfd8NTbGCP+ML6uxUmSW4TgfiLORQZfkbHTX30Gt2A6a
+    lwIDAQAB
+    -----END PUBLIC KEY-----
+  refresh-secret: 0C73074E-B133-4106-A022-4EF2E5884D04
   access-token-expire-minutes: 30
   refresh-token-expire-days: 7
 

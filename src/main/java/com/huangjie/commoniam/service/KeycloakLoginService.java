@@ -1,13 +1,11 @@
 package com.huangjie.commoniam.service;
 
+import com.huangjie.commoniam.client.KeycloakTokenClient;
 import com.huangjie.commoniam.config.KeycloakProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Keycloak 用户名密码校验服务。
@@ -19,9 +17,8 @@ import org.springframework.web.client.RestClientResponseException;
 @RequiredArgsConstructor
 public class KeycloakLoginService {
 
-    private final RestClient keycloakRestClient;
+    private final KeycloakTokenClient keycloakTokenClient;
     private final KeycloakProperties keycloakProperties;
-    private final KeycloakErrorMapper keycloakErrorMapper;
 
     /**
      * 使用 password grant 校验用户名密码。
@@ -35,15 +32,6 @@ public class KeycloakLoginService {
         form.add("username", username);
         form.add("password", password);
 
-        try {
-            keycloakRestClient.post()
-                    .uri("/realms/{realm}/protocol/openid-connect/token", keycloakProperties.getRealm())
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(form)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakTokenClient.token(keycloakProperties.getRealm(), form);
     }
 }

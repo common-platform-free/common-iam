@@ -1,16 +1,13 @@
 package com.huangjie.commoniam.service;
 
+import com.huangjie.commoniam.client.KeycloakTokenClient;
 import com.huangjie.commoniam.config.KeycloakProperties;
-import com.huangjie.commoniam.exception.BusinessException;
 import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Keycloak Admin API 访问令牌服务。
@@ -22,9 +19,8 @@ import org.springframework.web.client.RestClientResponseException;
 @RequiredArgsConstructor
 public class KeycloakAdminTokenService {
 
-    private final RestClient keycloakRestClient;
+    private final KeycloakTokenClient keycloakTokenClient;
     private final KeycloakProperties keycloakProperties;
-    private final KeycloakErrorMapper keycloakErrorMapper;
 
     private volatile String cachedToken;
     private volatile Instant expiresAt = Instant.EPOCH;
@@ -58,15 +54,6 @@ public class KeycloakAdminTokenService {
         form.add("client_id", keycloakProperties.getAdminClientId());
         form.add("client_secret", keycloakProperties.getAdminClientSecret());
 
-        try {
-            return keycloakRestClient.post()
-                    .uri("/realms/{realm}/protocol/openid-connect/token", keycloakProperties.getRealm())
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(form)
-                    .retrieve()
-                    .body(Map.class);
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        return keycloakTokenClient.token(keycloakProperties.getRealm(), form);
     }
 }

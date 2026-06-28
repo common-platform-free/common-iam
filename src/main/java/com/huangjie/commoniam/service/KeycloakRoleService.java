@@ -1,5 +1,6 @@
 package com.huangjie.commoniam.service;
 
+import com.huangjie.commoniam.client.KeycloakRoleClient;
 import com.huangjie.commoniam.config.KeycloakProperties;
 import com.huangjie.commoniam.dto.CreateRoleRequest;
 import com.huangjie.commoniam.dto.UpdateRoleRequest;
@@ -8,12 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Keycloak Realm Role Admin API 封装。
@@ -25,14 +21,9 @@ import org.springframework.web.client.RestClientResponseException;
 @RequiredArgsConstructor
 public class KeycloakRoleService {
 
-    private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST_OF_MAP =
-            new ParameterizedTypeReference<>() {
-            };
-
-    private final RestClient keycloakRestClient;
+    private final KeycloakRoleClient keycloakRoleClient;
     private final KeycloakProperties keycloakProperties;
     private final KeycloakAdminTokenService adminTokenService;
-    private final KeycloakErrorMapper keycloakErrorMapper;
 
     /**
      * 创建 Realm Role。
@@ -41,33 +32,15 @@ public class KeycloakRoleService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("name", request.name());
         body.put("description", request.description());
-        try {
-            keycloakRestClient.post()
-                    .uri("/admin/realms/{realm}/roles", keycloakProperties.getRealm())
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakRoleClient.createRole(bearerAuth(), keycloakProperties.getRealm(), body);
     }
 
     /**
      * 查询 Realm Role 列表。
      */
     public List<RoleVO> listRoles() {
-        try {
-            List<Map<String, Object>> roles = keycloakRestClient.get()
-                    .uri("/admin/realms/{realm}/roles", keycloakProperties.getRealm())
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(LIST_OF_MAP);
-            return roles == null ? List.of() : roles.stream().map(this::toRoleVO).toList();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        List<Map<String, Object>> roles = keycloakRoleClient.listRoles(bearerAuth(), keycloakProperties.getRealm());
+        return roles == null ? List.of() : roles.stream().map(this::toRoleVO).toList();
     }
 
     /**
@@ -88,32 +61,14 @@ public class KeycloakRoleService {
         if (request.description() != null) {
             body.put("description", request.description());
         }
-        try {
-            keycloakRestClient.put()
-                    .uri("/admin/realms/{realm}/roles/{roleName}", keycloakProperties.getRealm(), roleName)
-                    .headers(this::bearerAuth)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakRoleClient.updateRole(bearerAuth(), keycloakProperties.getRealm(), roleName, body);
     }
 
     /**
      * 删除 Realm Role。
      */
     public void deleteRole(String roleName) {
-        try {
-            keycloakRestClient.delete()
-                    .uri("/admin/realms/{realm}/roles/{roleName}", keycloakProperties.getRealm(), roleName)
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        keycloakRoleClient.deleteRole(bearerAuth(), keycloakProperties.getRealm(), roleName);
     }
 
     /**
@@ -128,22 +83,14 @@ public class KeycloakRoleService {
      * 查询 Keycloak 原始 role representation。
      */
     public Map<String, Object> getRoleRepresentation(String roleName) {
-        try {
-            return keycloakRestClient.get()
-                    .uri("/admin/realms/{realm}/roles/{roleName}", keycloakProperties.getRealm(), roleName)
-                    .headers(this::bearerAuth)
-                    .retrieve()
-                    .body(Map.class);
-        } catch (RestClientResponseException ex) {
-            throw keycloakErrorMapper.toBusinessException(ex);
-        }
+        return keycloakRoleClient.getRole(bearerAuth(), keycloakProperties.getRealm(), roleName);
     }
 
     /**
      * Admin API 统一加上 bearer token。
      */
-    private void bearerAuth(HttpHeaders headers) {
-        headers.setBearerAuth(adminTokenService.getAdminToken());
+    private String bearerAuth() {
+        return "Bearer " + adminTokenService.getAdminToken();
     }
 
     /**
