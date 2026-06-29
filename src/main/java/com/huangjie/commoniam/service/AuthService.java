@@ -40,7 +40,6 @@ public class AuthService {
         keycloakLoginService.verifyUsernamePassword(username, password);
         UserVO user = keycloakUserService.findSingleUserByUsername(username);
         List<String> roles = keycloakUserService.getUserRealmRoleNames(user.id());
-
         String accessToken = tokenIssueService.issueAccessToken(user.id(), user.username(), roles);
         String refreshToken = tokenIssueService.issueRefreshToken(user.id(), user.username());
         addAccessTokenCookie(response, accessToken);

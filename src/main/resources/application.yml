@@ -56,7 +56,7 @@ jwt:
     lwIDAQAB
     -----END PUBLIC KEY-----
   refresh-secret: 0C73074E-B133-4106-A022-4EF2E5884D04
-  access-token-expire-minutes: 30
+  access-token-expire-minutes: 1
   refresh-token-expire-days: 7
 
 auth:

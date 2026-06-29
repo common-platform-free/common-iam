@@ -6,7 +6,9 @@ import com.huangjie.commoniam.dto.UpdateRoleRequest;
 import com.huangjie.commoniam.service.KeycloakRoleService;
 import com.huangjie.commoniam.vo.RoleVO;
 import jakarta.validation.Valid;
+
 import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +34,7 @@ public class RoleAdminController {
     /**
      * 创建 Realm Role。
      */
-    @PostMapping
+    @PostMapping(value = "/create")
     public ApiResult<Boolean> createRole(@Valid @RequestBody CreateRoleRequest request) {
         keycloakRoleService.createRole(request);
         return ApiResult.success(true);
@@ -41,7 +43,7 @@ public class RoleAdminController {
     /**
      * 查询 Realm Role 列表。
      */
-    @GetMapping
+    @GetMapping(value = "/list")
     public ApiResult<List<RoleVO>> listRoles() {
         return ApiResult.success(keycloakRoleService.listRoles());
     }

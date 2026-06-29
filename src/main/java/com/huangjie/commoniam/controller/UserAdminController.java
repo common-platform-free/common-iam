@@ -11,8 +11,10 @@ import com.huangjie.commoniam.service.KeycloakUserService;
 import com.huangjie.commoniam.vo.RoleVO;
 import com.huangjie.commoniam.vo.UserVO;
 import jakarta.validation.Valid;
+
 import java.util.List;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,7 +43,7 @@ public class UserAdminController {
     /**
      * 创建用户，返回 Keycloak userId。
      */
-    @PostMapping
+    @PostMapping(value = "/create")
     public ApiResult<String> createUser(@Valid @RequestBody CreateUserRequest request) {
         return ApiResult.success(keycloakUserService.createUser(request));
     }
@@ -50,7 +52,7 @@ public class UserAdminController {
      * 查询用户列表。
      * page/size 会在 service 内转换成 Keycloak first/max。
      */
-    @GetMapping
+    @GetMapping(value = "/list")
     public ApiResult<List<UserVO>> listUsers(
             @RequestParam(required = false) String username,
             @RequestParam(defaultValue = "1") int page,
