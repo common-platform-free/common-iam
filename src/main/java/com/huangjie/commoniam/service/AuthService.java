@@ -34,6 +34,7 @@ public class AuthService {
     private final KeycloakUserService keycloakUserService;
     private final KeycloakRoleService keycloakRoleService;
     private final TokenIssueService tokenIssueService;
+    private final MockCaptchaService mockCaptchaService;
     private final AuthCookieProperties cookieProperties;
 
     /**
@@ -72,6 +73,35 @@ public class AuthService {
     public LoginResponse login(String username, String password, HttpServletResponse response) {
         keycloakLoginService.verifyUsernamePassword(username, password);
         UserVO user = keycloakUserService.findSingleUserByUsername(username);
+        List<String> roles = keycloakUserService.getUserRealmRoleNames(user.id());
+        String accessToken = tokenIssueService.issueAccessToken(user.id(), user.username(), roles);
+        String refreshToken = tokenIssueService.issueRefreshToken(user.id(), user.username());
+        addAccessTokenCookie(response, accessToken);
+        addRefreshTokenCookie(response, refreshToken);
+
+        return new LoginResponse(user.id(), user.username(), roles);
+    }
+
+    /**
+     * 生成模拟登录验证码。
+     *
+     * <p>验证码会输出到服务端日志，前端本地联调时从日志复制验证码再调用验证码登录接口。</p>
+     */
+    public boolean sendCaptcha(String username) {
+        mockCaptchaService.generate(username);
+        return true;
+    }
+
+    /**
+     * 验证码登录流程。
+     *
+     * <p>验证码只证明调用方知道当前 mock code；用户仍然从 Keycloak 查询，
+     * 并在登录前确认用户未被禁用。</p>
+     */
+    public LoginResponse captchaLogin(String username, String code, HttpServletResponse response) {
+        mockCaptchaService.verify(username, code);
+        UserVO user = keycloakUserService.findSingleUserByUsername(username);
+        keycloakUserService.assertUserEnabled(user.id());
         List<String> roles = keycloakUserService.getUserRealmRoleNames(user.id());
         String accessToken = tokenIssueService.issueAccessToken(user.id(), user.username(), roles);
         String refreshToken = tokenIssueService.issueRefreshToken(user.id(), user.username());

@@ -39,6 +39,6 @@ public class KeycloakFeignConfig {
     @Bean
     public ErrorDecoder keycloakErrorDecoder() {
         return (methodKey, response) ->
-                keycloakErrorMapper.toBusinessException(response.status(), response.reason());
+                keycloakErrorMapper.toBusinessException(methodKey, response.status(), response.reason());
     }
 }

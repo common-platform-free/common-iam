@@ -2,6 +2,8 @@ package com.huangjie.commoniam.controller;
 
 import com.huangjie.commoniam.common.ApiResult;
 import com.huangjie.commoniam.config.AuthCookieProperties;
+import com.huangjie.commoniam.dto.CaptchaLoginRequest;
+import com.huangjie.commoniam.dto.CaptchaSendRequest;
 import com.huangjie.commoniam.dto.LoginRequest;
 import com.huangjie.commoniam.dto.RegisterRequest;
 import com.huangjie.commoniam.service.AuthService;
@@ -53,6 +55,27 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResult<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         return ApiResult.success(authService.login(request.username(), request.password(), response));
+    }
+
+    /**
+     * 生成模拟验证码。
+     * 验证码不会返回给前端，只会输出到服务端日志。
+     */
+    @PostMapping("/captcha/send")
+    public ApiResult<Boolean> sendCaptcha(@Valid @RequestBody CaptchaSendRequest request) {
+        return ApiResult.success(authService.sendCaptcha(request.username()));
+    }
+
+    /**
+     * 验证码登录接口。
+     * 校验成功后通过 Set-Cookie 写入 access_token 与 refresh_token。
+     */
+    @PostMapping("/captcha/login")
+    public ApiResult<LoginResponse> captchaLogin(
+            @Valid @RequestBody CaptchaLoginRequest request,
+            HttpServletResponse response
+    ) {
+        return ApiResult.success(authService.captchaLogin(request.username(), request.code(), response));
     }
 
     /**
