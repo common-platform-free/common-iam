@@ -1,9 +1,11 @@
 package com.huangjie.commoniam.service;
 
 import com.huangjie.commoniam.client.KeycloakRoleClient;
+import com.huangjie.commoniam.common.ErrorCode;
 import com.huangjie.commoniam.config.KeycloakProperties;
 import com.huangjie.commoniam.dto.CreateRoleRequest;
 import com.huangjie.commoniam.dto.UpdateRoleRequest;
+import com.huangjie.commoniam.exception.BusinessException;
 import com.huangjie.commoniam.vo.RoleVO;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,6 +79,31 @@ public class KeycloakRoleService {
      */
     public List<Map<String, Object>> getRoleRepresentations(List<String> roleNames) {
         return roleNames.stream().map(this::getRoleRepresentation).toList();
+    }
+
+    /**
+     * 确保 Realm Role 存在，并返回 Keycloak 原始 role representation。
+     *
+     * <p>注册默认角色这类系统内置角色不能假设 Keycloak 已经提前创建。
+     * 如果查询不到，则先创建；如果并发创建时遇到 409，再重新查询即可。</p>
+     */
+    public Map<String, Object> ensureRoleRepresentation(String roleName, String description) {
+        try {
+            return getRoleRepresentation(roleName);
+        } catch (BusinessException ex) {
+            if (ex.getErrorCode() != ErrorCode.NOT_FOUND) {
+                throw ex;
+            }
+        }
+
+        try {
+            createRole(new CreateRoleRequest(roleName, description));
+        } catch (BusinessException ex) {
+            if (ex.getErrorCode() != ErrorCode.CONFLICT) {
+                throw ex;
+            }
+        }
+        return getRoleRepresentation(roleName);
     }
 
     /**

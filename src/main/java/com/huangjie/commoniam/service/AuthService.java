@@ -2,11 +2,14 @@ package com.huangjie.commoniam.service;
 
 import com.huangjie.commoniam.common.ErrorCode;
 import com.huangjie.commoniam.config.AuthCookieProperties;
+import com.huangjie.commoniam.dto.CreateUserRequest;
+import com.huangjie.commoniam.dto.RegisterRequest;
 import com.huangjie.commoniam.exception.BusinessException;
 import com.huangjie.commoniam.vo.LoginResponse;
 import com.huangjie.commoniam.vo.UserVO;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -24,10 +27,40 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String DEFAULT_REGISTER_ROLE = "user";
+    private static final String DEFAULT_REGISTER_ROLE_DESCRIPTION = "普通注册用户";
+
     private final KeycloakLoginService keycloakLoginService;
     private final KeycloakUserService keycloakUserService;
+    private final KeycloakRoleService keycloakRoleService;
     private final TokenIssueService tokenIssueService;
     private final AuthCookieProperties cookieProperties;
+
+    /**
+     * 普通用户自助注册。
+     *
+     * <p>注册接口只创建启用状态的普通用户，不允许前端指定角色。
+     * 注册前会确保默认普通 Realm Role 存在，创建成功后自动分配该角色。</p>
+     */
+    public LoginResponse register(RegisterRequest request) {
+        Map<String, Object> defaultRole = keycloakRoleService.ensureRoleRepresentation(
+                DEFAULT_REGISTER_ROLE,
+                DEFAULT_REGISTER_ROLE_DESCRIPTION
+        );
+        CreateUserRequest createUserRequest = new CreateUserRequest(
+                request.username(),
+                request.password(),
+                request.email(),
+                request.username(),
+                request.username(),
+                true,
+                Map.of()
+        );
+        String userId = keycloakUserService.createUser(createUserRequest);
+        assignDefaultRole(userId, defaultRole);
+        List<String> roles = keycloakUserService.getUserRealmRoleNames(userId);
+        return new LoginResponse(userId, request.username(), roles);
+    }
 
     /**
      * 登录流程：
@@ -76,6 +109,13 @@ public class AuthService {
         clearAccessTokenCookie(response);
         clearRefreshTokenCookie(response);
         return true;
+    }
+
+    /**
+     * 给注册用户分配默认普通角色。
+     */
+    private void assignDefaultRole(String userId, Map<String, Object> defaultRole) {
+        keycloakUserService.assignRealmRoles(userId, List.of(defaultRole));
     }
 
     /**

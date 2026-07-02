@@ -6,12 +6,12 @@ spring:
     name: common-iam
 
 keycloak:
-  server-url: http://localhost:8080
+  server-url: http://localhost:8081
   realm: huangjie
   admin-client-id: hj-admin-service
-  admin-client-secret: Irwfx1xK1u8Vi1SfWGb7h0FFEXGE7gkl
+  admin-client-secret: eanIAJedHwTNZEataLQ0UbRCx7zcSLUK
   login-client-id: hj-admin-service
-  login-client-secret: Irwfx1xK1u8Vi1SfWGb7h0FFEXGE7gkl
+  login-client-secret: eanIAJedHwTNZEataLQ0UbRCx7zcSLUK
   connect-timeout-seconds: 5
   read-timeout-seconds: 10
 

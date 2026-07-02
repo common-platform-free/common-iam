@@ -3,6 +3,7 @@ package com.huangjie.commoniam.controller;
 import com.huangjie.commoniam.common.ApiResult;
 import com.huangjie.commoniam.config.AuthCookieProperties;
 import com.huangjie.commoniam.dto.LoginRequest;
+import com.huangjie.commoniam.dto.RegisterRequest;
 import com.huangjie.commoniam.service.AuthService;
 import com.huangjie.commoniam.vo.CurrentUserVO;
 import com.huangjie.commoniam.vo.LoginResponse;
@@ -35,6 +36,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthCookieProperties cookieProperties;
+
+    /**
+     * 注册接口。
+     * 普通用户自助注册，注册成功后返回用户基础信息，不自动登录。
+     */
+    @PostMapping("/register")
+    public ApiResult<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResult.success(authService.register(request));
+    }
 
     /**
      * 登录接口。

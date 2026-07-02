@@ -29,6 +29,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class KeycloakUserService {
 
+    private static final String DEFAULT_EMAIL_DOMAIN = "example.com";
+
     private final KeycloakUserClient keycloakUserClient;
     private final KeycloakProperties keycloakProperties;
     private final KeycloakAdminTokenService adminTokenService;
@@ -40,7 +42,7 @@ public class KeycloakUserService {
     public String createUser(CreateUserRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("username", request.username());
-        body.put("email", request.email());
+        body.put("email", resolveEmail(request.username(), request.email()));
         body.put("firstName", request.firstName());
         body.put("lastName", request.lastName());
         body.put("enabled", request.enabled() == null || request.enabled());
@@ -226,6 +228,16 @@ public class KeycloakUserService {
         if (value != null) {
             body.put(key, value);
         }
+    }
+
+    /**
+     * 注册或创建用户时如果没有传邮箱，生成一个示例邮箱。
+     */
+    private String resolveEmail(String username, String email) {
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return username + "@" + DEFAULT_EMAIL_DOMAIN;
     }
 
     /**
